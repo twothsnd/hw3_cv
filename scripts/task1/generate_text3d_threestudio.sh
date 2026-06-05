@@ -3,6 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPO="${ROOT_DIR}/external/threestudio"
+PYTHON="${ROOT_DIR}/.venvs/threestudio/bin/python"
+if [[ ! -x "${PYTHON}" ]]; then
+  PYTHON="python"
+fi
 PROMPT=""
 NAME="object_B_text3d"
 TAG="dreamfusion_sd"
@@ -40,7 +44,7 @@ fi
 mkdir -p "${OUTPUT_ROOT}"
 cd "${REPO}"
 
-python launch.py \
+"${PYTHON}" launch.py \
   --config "${CONFIG}" \
   --train \
   --gpu "${GPU}" \
@@ -58,7 +62,7 @@ if [[ -z "${TRIAL_DIR}" ]]; then
 fi
 
 if [[ "${EXPORT_MESH}" == "1" ]]; then
-  python launch.py \
+  "${PYTHON}" launch.py \
     --config "${TRIAL_DIR}/configs/parsed.yaml" \
     --export \
     --gpu "${GPU}" \

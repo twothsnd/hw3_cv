@@ -67,6 +67,8 @@ Clone pinned third-party code:
 bash scripts/setup/clone_external.sh
 ```
 
+The clone script also downloads local archive copies of the AIGC build dependencies used by threestudio and Magic123, avoiding nested pip/Git clones during environment setup.
+
 Install common utility dependencies:
 
 ```bash
@@ -82,6 +84,8 @@ bash scripts/setup/install_lerobot_env.sh
 bash scripts/setup/install_threestudio_env.sh
 bash scripts/setup/install_magic123_env.sh
 ```
+
+The threestudio installer skips optional Gradio/xformers by default. The Magic123 installer skips optional Shape-E by default and uses `rembg` as the background-removal fallback when carvekit is unavailable.
 
 COLMAP, Blender, and ffmpeg are system-level tools. If they are not available in `PATH`, the repository can install local Blender/ffmpeg binaries and uses the `pycolmap` backend as a COLMAP fallback:
 

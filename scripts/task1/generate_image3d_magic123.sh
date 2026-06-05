@@ -3,6 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPO="${ROOT_DIR}/external/Magic123"
+PYTHON="${ROOT_DIR}/.venvs/magic123/bin/python"
+if [[ ! -x "${PYTHON}" ]]; then
+  PYTHON="python"
+fi
 IMAGE=""
 TEXT="a high-resolution DSLR image of the object"
 NAME="object_C_image3d"
@@ -43,13 +47,13 @@ mkdir -p "${WORK_DIR}" "${OUT_DIR}"
 cp "${ROOT_DIR}/${IMAGE}" "${WORK_DIR}/main.png"
 
 cd "${REPO}"
-python preprocess_image.py --path "${WORK_DIR}/main.png"
+"${PYTHON}" preprocess_image.py --path "${WORK_DIR}/main.png"
 
 FILENAME="${NAME}"
 COARSE_WS="${OUT_DIR}/magic123_${FILENAME}_coarse"
 FINE_WS="${OUT_DIR}/magic123_${FILENAME}_dmtet"
 
-CUDA_VISIBLE_DEVICES="${GPU}" python main.py -O \
+CUDA_VISIBLE_DEVICES="${GPU}" "${PYTHON}" main.py -O \
   --text "${TEXT}" \
   --sd_version 1.5 \
   --image "${WORK_DIR}/rgba.png" \
@@ -66,7 +70,7 @@ CUDA_VISIBLE_DEVICES="${GPU}" python main.py -O \
   --save_mesh \
   ${EXTRA_COARSE}
 
-CUDA_VISIBLE_DEVICES="${GPU}" python main.py -O \
+CUDA_VISIBLE_DEVICES="${GPU}" "${PYTHON}" main.py -O \
   --text "${TEXT}" \
   --sd_version 1.5 \
   --image "${WORK_DIR}/rgba.png" \

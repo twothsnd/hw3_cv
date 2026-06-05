@@ -1,0 +1,121 @@
+{
+  "output_dir": "results/task1/fusion_sparse_bg_smoke",
+  "resolution": [
+    960,
+    540
+  ],
+  "fps": 24,
+  "frames": 72,
+  "camera": {
+    "center": [
+      0.0,
+      0.0,
+      0.55
+    ],
+    "radius": 6.4,
+    "height": 2.4,
+    "focal_length": 30
+  },
+  "assets": [
+    {
+      "name": "background_garden_sparse_2dgs",
+      "path": "results/task1/2dgs/background_garden_sparse_smoke/train/ours_300/fuse_unbounded_post.ply",
+      "location": [
+        0.0,
+        0.0,
+        -0.1
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        0.12,
+        0.12
+      ],
+      "material_color": [
+        0.32,
+        0.48,
+        0.30,
+        1
+      ]
+    },
+    {
+      "name": "object_A_2dgs_synthetic_smoke",
+      "path": "results/task1/2dgs/object_A_synthetic_smoke/train/ours_200/fuse_post.ply",
+      "location": [
+        -0.95,
+        0.2,
+        0.12
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        -12
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ],
+      "material_color": [
+        0.78,
+        0.16,
+        0.12,
+        1
+      ]
+    },
+    {
+      "name": "object_B_demo_text3d",
+      "path": "results/task1/aigc/object_B_text3d/export/model.obj",
+      "location": [
+        0.25,
+        -0.45,
+        0.1
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        25
+      ],
+      "scale": [
+        0.62,
+        0.62,
+        0.62
+      ],
+      "material_color": [
+        0.18,
+        0.48,
+        0.88,
+        1
+      ]
+    },
+    {
+      "name": "object_C_demo_image3d",
+      "path": "results/task1/aigc/object_C_image3d/model.obj",
+      "location": [
+        0.95,
+        0.25,
+        0.08
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        -20
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ],
+      "material_color": [
+        0.9,
+        0.42,
+        0.1,
+        1
+      ]
+    }
+  ]
+}

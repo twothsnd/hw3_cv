@@ -1,0 +1,16 @@
+{
+  "github_url": "https://github.com/your-account/cv-hw3",
+  "members": [
+    {
+      "contribution": "Task 1 pipeline, report writing",
+      "id": "Student ID 1",
+      "name": "Student Name 1"
+    },
+    {
+      "contribution": "Task 2 training/evaluation, experiments",
+      "id": "Student ID 2",
+      "name": "Student Name 2"
+    }
+  ],
+  "weights_url": "https://your-cloud-link.example.com"
+}

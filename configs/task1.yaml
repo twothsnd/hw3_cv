@@ -1,0 +1,30 @@
+project_root: .
+task1:
+  object_a:
+    raw_input: data/raw/object_A
+    colmap_dataset: data/task1/object_A_colmap
+    model_dir: results/task1/2dgs/object_A
+    mesh_path: results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply
+  object_b:
+    prompt: "a small ceramic robot toy, high quality DSLR photo"
+    model_dir: results/task1/aigc/object_B_text3d
+    mesh_path: results/task1/aigc/object_B_text3d/export/model.obj
+  object_c:
+    input_image: data/raw/object_C/object_c.png
+    prompt: "a high-resolution DSLR image of the object"
+    model_dir: results/task1/aigc/object_C_image3d
+    mesh_path: results/task1/aigc/object_C_image3d/model.obj
+  background:
+    scene: garden
+    dataset: data/task1/mipnerf360/garden
+    model_dir: results/task1/2dgs/background_garden
+    mesh_path: results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply
+  training:
+    iterations: 30000
+    object_resolution: 2
+    background_resolution: 4
+    lambda_normal: 0.05
+    lambda_distortion: 100.0
+  fusion:
+    blender_config: configs/fusion_scene.json
+    output_dir: results/task1/fusion

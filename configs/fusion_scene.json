@@ -1,0 +1,46 @@
+{
+  "output_dir": "results/task1/fusion",
+  "resolution": [1280, 720],
+  "fps": 24,
+  "frames": 144,
+  "camera": {
+    "center": [0.0, 0.0, 0.8],
+    "radius": 6.0,
+    "height": 2.2,
+    "focal_length": 28
+  },
+  "assets": [
+    {
+      "name": "background",
+      "path": "results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply",
+      "location": [0.0, 0.0, 0.0],
+      "rotation_degrees": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "material_color": [0.8, 0.8, 0.8, 1.0]
+    },
+    {
+      "name": "object_A_real_2dgs",
+      "path": "results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply",
+      "location": [-0.9, 0.2, 0.15],
+      "rotation_degrees": [0.0, 0.0, 0.0],
+      "scale": [0.35, 0.35, 0.35],
+      "material_color": [0.95, 0.95, 0.95, 1.0]
+    },
+    {
+      "name": "object_B_text3d",
+      "path": "results/task1/aigc/object_B_text3d/export/model.obj",
+      "location": [0.25, -0.35, 0.15],
+      "rotation_degrees": [0.0, 0.0, 25.0],
+      "scale": [0.45, 0.45, 0.45],
+      "material_color": [0.45, 0.7, 0.95, 1.0]
+    },
+    {
+      "name": "object_C_image3d",
+      "path": "results/task1/aigc/object_C_image3d/model.obj",
+      "location": [0.95, 0.25, 0.15],
+      "rotation_degrees": [0.0, 0.0, -20.0],
+      "scale": [0.45, 0.45, 0.45],
+      "material_color": [0.9, 0.65, 0.35, 1.0]
+    }
+  ]
+}

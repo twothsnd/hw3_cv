@@ -1,0 +1,24 @@
+name: cv_hw3_utils
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - git
+  - cmake
+  - ninja
+  - pip:
+      - huggingface_hub
+      - imageio
+      - imageio-ffmpeg
+      - matplotlib
+      - numpy
+      - pandas
+      - pillow
+      - plyfile
+      - pyarrow
+      - pycolmap
+      - pyyaml
+      - safetensors
+      - scipy
+      - tqdm

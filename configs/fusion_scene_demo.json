@@ -1,0 +1,121 @@
+{
+  "output_dir": "results/task1/fusion_demo",
+  "resolution": [
+    960,
+    540
+  ],
+  "fps": 24,
+  "frames": 72,
+  "camera": {
+    "center": [
+      0.0,
+      0.0,
+      0.7
+    ],
+    "radius": 5.2,
+    "height": 2.1,
+    "focal_length": 30
+  },
+  "assets": [
+    {
+      "name": "background_demo",
+      "path": "results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "material_color": [
+        0.25,
+        0.5,
+        0.28,
+        1
+      ]
+    },
+    {
+      "name": "object_A_demo_2dgs",
+      "path": "results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply",
+      "location": [
+        -0.9,
+        0.2,
+        0.1
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        -10
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "material_color": [
+        0.78,
+        0.16,
+        0.12,
+        1
+      ]
+    },
+    {
+      "name": "object_B_demo_text3d",
+      "path": "results/task1/aigc/object_B_text3d/export/model.obj",
+      "location": [
+        0.25,
+        -0.45,
+        0.08
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        25
+      ],
+      "scale": [
+        0.62,
+        0.62,
+        0.62
+      ],
+      "material_color": [
+        0.18,
+        0.48,
+        0.88,
+        1
+      ]
+    },
+    {
+      "name": "object_C_demo_image3d",
+      "path": "results/task1/aigc/object_C_image3d/model.obj",
+      "location": [
+        0.95,
+        0.25,
+        0.07
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        -20
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ],
+      "material_color": [
+        0.9,
+        0.42,
+        0.1,
+        1
+      ]
+    }
+  ]
+}

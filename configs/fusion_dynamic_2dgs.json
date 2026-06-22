@@ -1,17 +1,18 @@
 {
   "output_dir": "results/task1/fusion",
-  "background_image": "results/task1/previews/background_garden_full_plate_00000_1280x720.png",
+  "background_frames": "results/task1/2dgs/background_garden_full/traj/ours_30000/renders",
+  "foreground_dir": "results/task1/fusion/foreground_turntable",
+  "composite_dir": "results/task1/fusion/dynamic_composite_frames",
   "resolution": [
     1280,
     720
   ],
   "fps": 24,
-  "frames": 96,
-  "render_animation": true,
-  "orthographic_scale": 4.0,
+  "frames": 240,
+  "orthographic_scale": 3.0,
   "camera_location": [
     0.0,
-    -8.0,
+    -6.0,
     0.0
   ],
   "camera_target": [
@@ -19,86 +20,86 @@
     0.0,
     0.0
   ],
-  "backplate_y": 1.0,
-  "shadow_alpha": 0.23,
   "assets": [
     {
       "name": "object_A_real_2dgs",
       "path": "results/task1/2dgs/object_A_rgba_cropped_alpha_clean/train/ours_latest/fuse_post_2dgs_tsdf_main_component.ply",
       "x": -1.28,
-      "y": -0.35,
-      "baseline_z": -0.34,
-      "height": 0.86,
+      "baseline_z": -0.18,
+      "height": 0.74,
       "rotation_degrees": [
         -90.0,
         0.0,
         12.0
       ],
-      "spin_degrees": 360.0,
       "material_color": [
         0.82,
         0.18,
         0.14,
         1.0
       ],
-      "use_vertex_colors": true,
-      "shadow": {
-        "width": 0.42,
-        "height": 0.10,
-        "z_offset": 0.01
-      }
+      "use_vertex_colors": true
     },
     {
       "name": "object_B_text3d",
       "path": "results/task1/aigc/object_B_text3d/export/model.obj",
       "x": 0.0,
-      "y": -0.42,
-      "baseline_z": -0.39,
-      "height": 0.54,
+      "baseline_z": -0.22,
+      "height": 0.48,
       "rotation_degrees": [
         0.0,
         0.0,
         15.0
       ],
-      "spin_degrees": 360.0,
       "material_color": [
         0.18,
         0.48,
         0.88,
         1.0
       ],
-      "use_vertex_colors": true,
-      "shadow": {
-        "width": 0.72,
-        "height": 0.12,
-        "z_offset": 0.01
-      }
+      "use_vertex_colors": true
     },
     {
       "name": "object_C_image3d",
       "path": "results/task1/aigc/object_C_image3d/model.obj",
       "x": 1.28,
-      "y": -0.35,
-      "baseline_z": -0.34,
-      "height": 0.82,
+      "baseline_z": -0.18,
+      "height": 0.72,
       "rotation_degrees": [
         0.0,
         0.0,
         -20.0
       ],
-      "spin_degrees": 360.0,
       "material_color": [
         0.95,
         0.58,
         0.18,
         1.0
       ],
-      "use_vertex_colors": true,
-      "shadow": {
-        "width": 0.46,
-        "height": 0.11,
-        "z_offset": 0.01
-      }
+      "use_vertex_colors": true
+    }
+  ],
+  "shadows": [
+    {
+      "x": 330,
+      "y": 432,
+      "width": 150,
+      "height": 32,
+      "alpha": 70
+    },
+    {
+      "x": 640,
+      "y": 434,
+      "width": 190,
+      "height": 34,
+      "alpha": 72
+    },
+    {
+      "x": 950,
+      "y": 432,
+      "width": 150,
+      "height": 32,
+      "alpha": 70
     }
   ]
 }

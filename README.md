@@ -1,82 +1,73 @@
-# CV HW3: 2DGS/AIGC Fusion and LeRobot ACT on CALVIN
+# CV HW3: 2DGS/AIGC 3D Fusion and LeRobot ACT Generalization
 
-This repository is the reproducible project scaffold for both required parts of `HW3_计算机视觉.pdf`.
+This repository contains the code for Computer Vision HW3.
 
-Deadline: 2026-06-23 23:59 Beijing time.
+It implements two tasks:
 
-## What Is Implemented
+1. **Multi-source 3D asset generation and real-scene fusion** with COLMAP, 2D Gaussian Splatting, threestudio/DreamFusion SDS, Magic123, and Blender mesh rendering.
+2. **ACT policy cross-environment generalization** with LeRobot on the CALVIN A/B/C/D environment splits.
 
-Task 1:
+Large datasets, generated meshes/videos, trained checkpoints, and the final report are not tracked in Git. They should be downloaded or placed locally according to the instructions below.
 
-- real object multi-view/video preprocessing
-- COLMAP reconstruction wrapper
-- 2D Gaussian Splatting training and mesh/video extraction
-- text-to-3D generation through threestudio DreamFusion/SDS
-- single-image-to-3D generation through Magic123
-- mesh normalization, asset statistics, and Blender-based final scene fusion
-
-Task 2:
-
-- CALVIN raw dataset to LeRobotDataset conversion with environment filtering
-- HuggingFace CALVIN LeRobot v2.1 subset download and local v3 conversion
-- ACT training for environment B and mixed environments A/B/C
-- offline Action L1 validation
-- optional CALVIN official simulator evaluation through a LeRobot-to-CALVIN adapter
-- metric summarization for report tables
-
-The scripts are designed to be run from the repository root.
-
-## Directory Contract
+## Repository Layout
 
 ```text
-data/
-  raw/
-    object_A/                # phone video or multi-view photos for real object A
-    object_C/object_c.png    # single foreground object image for Magic123
-  task1/
-    object_A_colmap/
-    mipnerf360/garden/
-  task2/
-    calvin_raw/task_ABCD_D/
-    lerobot/calvin_B/
-    lerobot/calvin_ABC/
-    lerobot/calvin_D_validation/
-
-external/                    # cloned third-party repositories
-results/
-  task1/
-  task2/
-weights/                     # final checkpoint packages for cloud upload
-report/                      # LaTeX report
+configs/                 # YAML/JSON configs for Task 1 and fusion rendering
+docs/                    # audit notes and handoff docs
+scripts/
+  setup/                 # environment and third-party dependency setup
+  task1/                 # COLMAP, 2DGS, AIGC, mesh cleanup, Blender rendering
+  task2/                 # CALVIN conversion, ACT training, offline evaluation
+  report/                # figure generation, readiness checks, packaging helpers
+src/cv_hw3/              # shared Python utilities
+environment.yml          # lightweight utility conda environment
+README.md
 ```
 
-Large data, generated results, third-party repos, and weights are intentionally ignored by Git.
+Expected local, untracked working directories:
 
-## Setup
+```text
+data/                    # raw inputs and converted datasets
+external/                # cloned third-party repositories
+results/                 # generated reconstructions, logs, metrics, videos
+weights/                 # packaged trained model weights for cloud upload
+tools/                   # optional local Blender/ffmpeg binaries
+.venvs/                  # Python virtual environments
+report/                  # local report notebook/PDF and generated figures
+```
 
-For lightweight utilities, use the provided Conda environment:
+## Requirements
+
+Tested environment:
+
+- Linux with CUDA GPU
+- Python 3.10 for LeRobot utilities
+- CUDA-enabled PyTorch environments for 2DGS, threestudio, Magic123, and LeRobot
+- COLMAP or `pycolmap`
+- Blender
+- ffmpeg
+
+Create the lightweight utility environment:
 
 ```bash
 conda env create -f environment.yml
 conda activate cv_hw3_utils
 ```
 
-Clone pinned third-party code:
+Clone third-party code:
 
 ```bash
 bash scripts/setup/clone_external.sh
 ```
 
-The clone script also downloads local archive copies of the AIGC build dependencies used by threestudio and Magic123, avoiding nested pip/Git clones during environment setup.
-
-Install common utility dependencies:
+Install utility dependencies:
 
 ```bash
 bash scripts/setup/install_utils_env.sh
 source .venvs/hw3-utils/bin/activate
 ```
 
-Install heavy training environments only when you are ready to run them:
+Install heavy environments only when needed:
 
 ```bash
 bash scripts/setup/install_2dgs_env.sh
@@ -85,115 +76,70 @@ bash scripts/setup/install_threestudio_env.sh
 bash scripts/setup/install_magic123_env.sh
 ```
 
-The threestudio installer skips optional Gradio/xformers by default. The Magic123 installer skips optional Shape-E by default and uses `rembg` as the background-removal fallback when carvekit is unavailable.
-
-COLMAP, Blender, and ffmpeg are system-level tools. If they are not available in `PATH`, the repository can install local Blender/ffmpeg binaries and uses the `pycolmap` backend as a COLMAP fallback:
+Install local Blender/ffmpeg helpers if system binaries are unavailable:
 
 ```bash
 bash scripts/setup/install_local_tools.sh
 export PATH="$PWD/tools/bin:$PATH"
 ```
 
-## Task 1 Workflow
+## Data Preparation
 
-The real submission requires phone-captured object A multi-view/video data and one foreground image for object C. If those inputs are absent, this smoke test creates explicitly synthetic demo meshes and verifies the fusion renderer:
+### Task 1 Inputs
 
-```bash
-PATH="$PWD/tools/bin:$PATH" blender -b \
-  --python scripts/task1/create_synthetic_demo_assets.py -- \
-  --config configs/fusion_scene_demo.json
+Prepare local private inputs:
 
-python scripts/task1/collect_asset_stats.py \
-  --assets \
-    object_A=results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply \
-    object_B=results/task1/aigc/object_B_text3d/export/model.obj \
-    object_C=results/task1/aigc/object_C_image3d/model.obj \
-    background=results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply \
-  --output results/task1/asset_stats.json
-
-PATH="$PWD/tools/bin:$PATH" bash scripts/task1/render_fusion_blender.sh configs/fusion_scene_demo.json
+```text
+data/raw/object_A/                # phone video or multi-view photos of object A
+data/raw/object_C/object_c.png    # foreground single image for object C
 ```
 
-This writes `results/task1/fusion_demo/fusion_preview.png`, `fusion_scene.blend`, and `fusion_walkthrough.mp4`. Replace these synthetic meshes with the real 2DGS/threestudio/Magic123 outputs for final grading.
-
-To separately verify that the 2DGS training and mesh extraction path is executable, generate a synthetic NeRF-style object-A dataset and run a short 2DGS smoke test:
+Download the Mip-NeRF 360 `garden` scene:
 
 ```bash
-PATH="$PWD/tools/bin:$PATH" blender -b \
-  --python scripts/task1/create_synthetic_nerf_dataset.py -- \
-  --output data/task1/synthetic_object_A_nerf \
-  --train-views 24 \
-  --test-views 6 \
-  --resolution 256
-
-source .venvs/2dgs/bin/activate
-
-bash scripts/task1/train_2dgs.sh \
-  --dataset data/task1/synthetic_object_A_nerf \
-  --output results/task1/2dgs/object_A_synthetic_smoke \
-  --gpu 0 \
-  --iterations 200 \
-  --resolution 2 \
-  --no-eval \
-  --extra "--test_iterations 200 --save_iterations 200 --quiet"
-
-bash scripts/task1/render_2dgs.sh \
-  --dataset data/task1/synthetic_object_A_nerf \
-  --model results/task1/2dgs/object_A_synthetic_smoke \
-  --gpu 0 \
-  --mesh-mode bounded \
-  --mesh-res 64 \
-  --resolution 2 \
-  --extra "--iteration 200 --num_cluster 5"
-
-python scripts/task1/collect_asset_stats.py \
-  --assets object_A_2dgs_synthetic_smoke=results/task1/2dgs/object_A_synthetic_smoke/train/ours_200/fuse_post.ply \
-  --output results/task1/task1_2dgs_smoke_stats.json
+mkdir -p data/task1/mipnerf360_full
+wget -O data/task1/mipnerf360_full/garden.zip \
+  https://storage.googleapis.com/gresearch/refraw360/garden.zip
+unzip -q data/task1/mipnerf360_full/garden.zip -d data/task1/mipnerf360_full
 ```
 
-This is a pipeline validation artifact only. It does not satisfy the phone-captured object requirement.
+### Task 2 Inputs
 
-To verify the background 2DGS path without downloading the full 12.5GB Mip-NeRF 360 archive, use the small NerfBaselines Mip-NeRF 360 sparse garden-n24 files:
+This project uses the official helper split dataset:
+
+```text
+xiaoma26/calvin-lerobot
+```
+
+Download and convert the required subsets:
 
 ```bash
-bash scripts/task1/download_nerfbaselines_mipnerf360_sparse.sh garden 24
+source .venvs/lerobot/bin/activate
 
-source .venvs/2dgs/bin/activate
+python scripts/task2/download_xiaoma_calvin_subset.py \
+  --repo-id xiaoma26/calvin-lerobot \
+  --output-root data/task2/xiaoma_calvin \
+  --splits A B C D
 
-python scripts/task1/convert_nerfbaselines_sparse_to_2dgs.py \
-  --nbv-json data/task1/mipnerf360_sparse_garden_n24/raw/garden-n24-nbv.json \
-  --pointcloud data/task1/mipnerf360_sparse_garden_n24/raw/garden-n24-pointcloud.ply \
-  --output data/task1/mipnerf360_sparse_garden_n24/2dgs_dataset \
+python scripts/task2/convert_xiaoma_calvin_to_v30.py \
+  --input-root data/task2/xiaoma_calvin \
+  --output-root data/task2/lerobot_v30_official \
   --overwrite
-
-bash scripts/task1/train_2dgs.sh \
-  --dataset data/task1/mipnerf360_sparse_garden_n24/2dgs_dataset \
-  --output results/task1/2dgs/background_garden_sparse_smoke \
-  --gpu 0 \
-  --iterations 300 \
-  --resolution 1 \
-  --no-eval \
-  --extra "--test_iterations 300 --save_iterations 300 --quiet --depth_ratio 0"
-
-bash scripts/task1/render_2dgs.sh \
-  --dataset data/task1/mipnerf360_sparse_garden_n24/2dgs_dataset \
-  --model results/task1/2dgs/background_garden_sparse_smoke \
-  --gpu 0 \
-  --mesh-mode unbounded \
-  --mesh-res 512 \
-  --resolution 1 \
-  --extra "--iteration 300 --num_cluster 20"
-
-python scripts/task1/collect_asset_stats.py \
-  --assets background_garden_sparse_2dgs=results/task1/2dgs/background_garden_sparse_smoke/train/ours_300/fuse_unbounded_post.ply \
-  --output results/task1/background_garden_sparse_smoke_stats.json
-
-PATH="$PWD/tools/bin:$PATH" bash scripts/task1/render_fusion_blender.sh configs/fusion_scene_sparse_bg_smoke.json
 ```
 
-This writes `results/task1/fusion_sparse_bg_smoke/fusion_walkthrough.mp4`. It is a public-data smoke test based on 163x105 thumbnails, not a substitute for the final full-resolution Mip-NeRF 360 background run.
+The final experiments use:
 
-Prepare object A frames:
+```text
+data/task2/lerobot_v30_official/calvin_B_train80
+data/task2/lerobot_v30_official/calvin_B_val20
+data/task2/lerobot_v30_official/calvin_ABC_train40each
+data/task2/lerobot_v30_official/calvin_ABC_val10each
+data/task2/lerobot_v30_official/calvin_D_eval_100
+```
+
+## Task 1: Train and Render
+
+Extract object-A frames:
 
 ```bash
 python scripts/task1/extract_frames.py \
@@ -212,26 +158,34 @@ python scripts/task1/run_colmap.py \
   --matcher exhaustive
 ```
 
-Train 2DGS for object A and for the background:
+Train object-A 2DGS:
 
 ```bash
+source .venvs/2dgs/bin/activate
+
 bash scripts/task1/train_2dgs.sh \
   --dataset data/task1/object_A_colmap \
   --output results/task1/2dgs/object_A \
   --gpu 0 \
-  --iterations 30000
-
-bash scripts/task1/download_mipnerf360.sh garden data/task1/mipnerf360
-
-bash scripts/task1/train_2dgs.sh \
-  --dataset data/task1/mipnerf360/garden \
-  --output results/task1/2dgs/background_garden \
-  --gpu 1 \
-  --iterations 30000 \
-  --extra "--depth_ratio 0"
+  --iterations 20000
 ```
 
-Extract meshes and trajectory video:
+Train garden 2DGS:
+
+```bash
+source .venvs/2dgs/bin/activate
+
+bash scripts/task1/train_2dgs.sh \
+  --dataset data/task1/mipnerf360_full/garden \
+  --output results/task1/2dgs/background_garden_full \
+  --gpu 0 \
+  --iterations 30000 \
+  --resolution 1 \
+  --no-eval \
+  --extra "-i images_2 --test_iterations 30000 --save_iterations 30000 --checkpoint_iterations 30000 --quiet --depth_ratio 0"
+```
+
+Extract 2DGS meshes:
 
 ```bash
 bash scripts/task1/render_2dgs.sh \
@@ -241,31 +195,34 @@ bash scripts/task1/render_2dgs.sh \
   --mesh-mode bounded
 
 bash scripts/task1/render_2dgs.sh \
-  --dataset data/task1/mipnerf360/garden \
-  --model results/task1/2dgs/background_garden \
-  --gpu 1 \
+  --dataset data/task1/mipnerf360_full/garden \
+  --model results/task1/2dgs/background_garden_full \
+  --gpu 0 \
   --mesh-mode unbounded \
-  --render-path 1
+  --mesh-res 512 \
+  --resolution 1 \
+  --extra "-i images_2 --iteration 30000 --num_cluster 20 --quiet"
 ```
 
-Generate object B:
+Generate object B with threestudio/DreamFusion SDS:
 
 ```bash
 bash scripts/task1/generate_text3d_threestudio.sh \
-  --prompt "a small ceramic robot toy, high quality DSLR photo" \
+  --prompt "a simple small toy car, four clearly separated black wheels, rounded plastic body, compact low car shape, symmetric side profile, single object, centered" \
   --name object_B_text3d \
-  --gpu 2 \
-  --max-steps 10000
+  --gpu 0 \
+  --max-steps 20000
 ```
 
-Generate object C:
+Generate object C with Magic123:
 
 ```bash
 bash scripts/task1/generate_image3d_magic123.sh \
   --image data/raw/object_C/object_c.png \
-  --text "a high-resolution DSLR image of the object" \
   --name object_C_image3d \
-  --gpu 3
+  --gpu 0 \
+  --no-depth \
+  --guidance-mode zero123
 ```
 
 Collect mesh statistics:
@@ -276,198 +233,141 @@ python scripts/task1/collect_asset_stats.py \
     object_A=results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply \
     object_B=results/task1/aigc/object_B_text3d/export/model.obj \
     object_C=results/task1/aigc/object_C_image3d/model.obj \
-    background=results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply \
+    background=results/task1/2dgs/background_garden_full/train/ours_latest/fuse_unbounded_post_crop_q02_98.ply \
   --output results/task1/asset_stats.json
 ```
 
-Render the fused scene in Blender:
+Render final mesh fusion in Blender:
 
 ```bash
-bash scripts/task1/render_fusion_blender.sh configs/fusion_scene.json
+PATH="$PWD/tools/bin:$PATH" blender -b \
+  --python scripts/task1/render_mesh_table_fusion.py -- \
+  --config configs/fusion_mesh_table.json
 ```
 
-After real object A/C inputs are available, the full Task 1 path can be launched with:
+## Task 2: Train and Test
+
+Train B-only ACT with online validation:
 
 ```bash
-PATH="$PWD/tools/bin:$PATH" bash scripts/task1/run_real_pipeline.sh \
-  --object-a-input data/raw/object_A \
-  --object-c-image data/raw/object_C/object_c.png \
-  --object-b-prompt "a small ceramic robot toy, high quality DSLR photo" \
-  --scene garden \
-  --object-a-gpu 0 \
-  --background-gpu 1 \
-  --text3d-gpu 2 \
-  --image3d-gpu 3
+CUDA_VISIBLE_DEVICES=0 .venvs/lerobot/bin/python scripts/task2/train_act_with_online_val.py \
+  --train-repo-id cv_hw3/calvin_official_B_train80 \
+  --train-root data/task2/lerobot_v30_official/calvin_B_train80 \
+  --val-repo-id cv_hw3/calvin_official_B_val20 \
+  --val-root data/task2/lerobot_v30_official/calvin_B_val20 \
+  --output results/task2/online_act_B_train80_val20_10k \
+  --job-name online_act_B_train80_val20_10k \
+  --steps 10000 \
+  --batch-size 16 \
+  --num-workers 8 \
+  --log-freq 100 \
+  --val-freq 1000 \
+  --save-freq 5000 \
+  --val-max-batches 0 \
+  --device cuda
 ```
 
-For a quick command audit without running heavy training, use:
+Train A/B/C mixed ACT with online validation:
 
 ```bash
-bash scripts/task1/run_real_pipeline.sh --dry-run
+CUDA_VISIBLE_DEVICES=0 .venvs/lerobot/bin/python scripts/task2/train_act_with_online_val.py \
+  --train-repo-id cv_hw3/calvin_official_ABC_train40each \
+  --train-root data/task2/lerobot_v30_official/calvin_ABC_train40each \
+  --val-repo-id cv_hw3/calvin_official_ABC_val10each \
+  --val-root data/task2/lerobot_v30_official/calvin_ABC_val10each \
+  --output results/task2/online_act_ABC_train40each_val10each_10k \
+  --job-name online_act_ABC_train40each_val10each_10k \
+  --steps 10000 \
+  --batch-size 16 \
+  --num-workers 8 \
+  --log-freq 100 \
+  --val-freq 1000 \
+  --save-freq 5000 \
+  --val-max-batches 0 \
+  --device cuda
 ```
 
-## Task 2 Workflow
-
-Download CALVIN with the official script from `external/calvin/dataset`. Use `ABCD` if you need B-only and A/B/C filtering from the same source, and use the D validation split for zero-shot testing.
-
-For the checked lightweight run, the CALVIN HuggingFace datasets are downloaded as LeRobot v2.1 parquet subsets and converted locally to LeRobot v3:
+Evaluate both policies on unseen environment D:
 
 ```bash
-source .venvs/lerobot/bin/activate
+CUDA_VISIBLE_DEVICES=0 .venvs/lerobot/bin/python scripts/task2/eval_action_l1.py \
+  --policy-path results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model \
+  --dataset-repo-id cv_hw3/calvin_official_D_eval_100 \
+  --dataset-root data/task2/lerobot_v30_official/calvin_D_eval_100 \
+  --batch-size 16 \
+  --num-workers 8 \
+  --device cuda \
+  --output results/task2/online_eval_B_on_D_100.json
 
-python scripts/task2/download_hf_lerobot_subset.py \
-  --repo-id fywang/calvin-task-D-D-lerobot \
-  --output-root data/task2/lerobot_hf/d_eval_20 \
-  --episodes 0:20 --revision main --overwrite
-
-python scripts/task2/download_hf_lerobot_subset.py \
-  --repo-id fywang/calvin-task-ABCD-D-lerobot \
-  --output-root data/task2/lerobot_hf/b_inferred_40 \
-  --episodes 6500:6540 --revision main --overwrite
-
-python scripts/task2/download_hf_lerobot_subset.py \
-  --repo-id fywang/calvin-task-ABC-D-lerobot \
-  --output-root data/task2/lerobot_hf/abc_train_40 \
-  --episodes 0:40 --revision main --overwrite
-
-python scripts/task2/convert_hf_v21_subset_to_v30.py \
-  --source-root data/task2/lerobot_hf/d_eval_20 \
-  --output-root data/task2/lerobot_v30/calvin_D_eval \
-  --repo-id cv_hw3/calvin_D_eval --overwrite
-
-python scripts/task2/convert_hf_v21_subset_to_v30.py \
-  --source-root data/task2/lerobot_hf/b_inferred_40 \
-  --output-root data/task2/lerobot_v30/calvin_B_inferred \
-  --repo-id cv_hw3/calvin_B_inferred \
-  --drop-features observation.environment_state --overwrite
-
-python scripts/task2/convert_hf_v21_subset_to_v30.py \
-  --source-root data/task2/lerobot_hf/abc_train_40 \
-  --output-root data/task2/lerobot_v30/calvin_ABC_small \
-  --repo-id cv_hw3/calvin_ABC_small --overwrite
+CUDA_VISIBLE_DEVICES=0 .venvs/lerobot/bin/python scripts/task2/eval_action_l1.py \
+  --policy-path results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model \
+  --dataset-repo-id cv_hw3/calvin_official_D_eval_100 \
+  --dataset-root data/task2/lerobot_v30_official/calvin_D_eval_100 \
+  --batch-size 16 \
+  --num-workers 8 \
+  --device cuda \
+  --output results/task2/online_eval_ABC_on_D_100.json
 ```
 
-The `b_inferred_40` range is inferred from the official CALVIN scene order because the HF parquet metadata does not include per-episode environment labels.
+## Report Figures and Checks
 
-Convert environment B:
+Generate figures and rebuild the local notebook report:
 
 ```bash
-python scripts/task2/prepare_calvin_lerobot.py \
-  --calvin-root data/task2/calvin_raw/task_ABCD_D \
-  --split training \
-  --environments B \
-  --repo-id cv_hw3/calvin_B \
-  --output-root data/task2/lerobot/calvin_B
+.venvs/lerobot/bin/python scripts/report/make_task2_official_figures.py
+.venvs/lerobot/bin/python scripts/report/make_plots.py \
+  --act-evals results/task2/online_eval_B_on_D_100.json results/task2/online_eval_ABC_on_D_100.json \
+  --act-labels B-only ABC-mixed \
+  --output-dir report/figures
+.venvs/lerobot/bin/python scripts/report/build_notebook_report.py
 ```
 
-Convert environments A/B/C:
-
-```bash
-python scripts/task2/prepare_calvin_lerobot.py \
-  --calvin-root data/task2/calvin_raw/task_ABCD_D \
-  --split training \
-  --environments A B C \
-  --repo-id cv_hw3/calvin_ABC \
-  --output-root data/task2/lerobot/calvin_ABC
-```
-
-Train ACT:
-
-```bash
-bash scripts/task2/train_act_lerobot.sh \
-  --dataset-repo-id cv_hw3/calvin_B \
-  --dataset-root data/task2/lerobot/calvin_B \
-  --output results/task2/act_env_B \
-  --job-name act_env_B \
-  --gpu 0 \
-  --steps 100000 \
-  --batch-size 64
-
-bash scripts/task2/train_act_lerobot.sh \
-  --dataset-repo-id cv_hw3/calvin_ABC \
-  --dataset-root data/task2/lerobot/calvin_ABC \
-  --output results/task2/act_env_ABC \
-  --job-name act_env_ABC \
-  --gpu 1 \
-  --steps 100000 \
-  --batch-size 64
-```
-
-Offline zero-shot action-error evaluation on D:
-
-```bash
-python scripts/task2/eval_action_l1.py \
-  --policy-path results/task2/act_env_B_inferred/checkpoints/000100/pretrained_model \
-  --dataset-repo-id cv_hw3/calvin_D_eval \
-  --dataset-root data/task2/lerobot_v30/calvin_D_eval \
-  --output results/task2/eval_B_on_D.json
-
-python scripts/task2/eval_action_l1.py \
-  --policy-path results/task2/act_env_ABC_small/checkpoints/000100/pretrained_model \
-  --dataset-repo-id cv_hw3/calvin_D_eval \
-  --dataset-root data/task2/lerobot_v30/calvin_D_eval \
-  --output results/task2/eval_ABC_on_D.json
-
-python scripts/task2/eval_action_l1.py \
-  --policy-path results/task2/act_env_B_inferred_500/checkpoints/000500/pretrained_model \
-  --dataset-repo-id cv_hw3/calvin_D_eval \
-  --dataset-root data/task2/lerobot_v30/calvin_D_eval \
-  --output results/task2/eval_B500_on_D.json
-
-python scripts/task2/eval_action_l1.py \
-  --policy-path results/task2/act_env_ABC_small_500/checkpoints/000500/pretrained_model \
-  --dataset-repo-id cv_hw3/calvin_D_eval \
-  --dataset-root data/task2/lerobot_v30/calvin_D_eval \
-  --output results/task2/eval_ABC500_on_D.json
-
-python scripts/task2/summarize_act_metrics.py \
-  --inputs results/task2/eval_B_on_D.json results/task2/eval_ABC_on_D.json results/task2/eval_B500_on_D.json results/task2/eval_ABC500_on_D.json \
-  --labels B_100 ABC_100 B_500 ABC_500 \
-  --output results/task2/act_eval_summary.csv
-```
-
-Optional official CALVIN success-rate evaluation:
-
-```bash
-python scripts/task2/eval_calvin_lerobot_act.py \
-  --calvin-root external/calvin \
-  --dataset-path data/task2/calvin_raw/task_D_D \
-  --policy-path results/task2/act_env_ABC/checkpoints/last/pretrained_model \
-  --eval-log-dir results/task2/calvin_success_env_ABC_on_D
-```
-
-## Report
-
-Build the report after metrics and figures are generated:
-
-```bash
-bash scripts/report/build_report.sh
-```
-
-Package the trained ACT checkpoints and metrics:
+Package ACT weights for cloud upload:
 
 ```bash
 bash scripts/report/package_weights.sh
 ```
 
-Run the strict final submission gate:
+Run the final readiness gate:
 
 ```bash
-python scripts/report/check_submission_ready.py --json results/submission_readiness.json
+.venvs/lerobot/bin/python scripts/report/check_submission_ready.py \
+  --json results/submission_readiness.json
 ```
 
-The report must include the public GitHub URL and model weight cloud link before submission.
+## Model Weights
 
-To fill the report front-page metadata reproducibly, copy the example metadata file, edit it, then apply it:
+Model weights are not tracked in Git.
+
+After running `scripts/report/package_weights.sh`, upload this file to cloud storage:
+
+```text
+weights/cv_hw3_task2_act_weights.tar.gz
+```
+
+The archive contains:
+
+- B-only ACT 10000-step checkpoint
+- ABC-mixed ACT 10000-step checkpoint
+- D-environment evaluation JSON files
+- online training/validation metric CSV files
+
+When reproducing from a downloaded archive, extract it at the repository root:
 
 ```bash
-cp report/metadata.example.json report/metadata.json
-python scripts/report/fill_report_metadata.py --metadata report/metadata.json
-bash scripts/report/build_report.sh
+tar -xzf weights/cv_hw3_task2_act_weights.tar.gz -C .
 ```
 
-Create a local submission backup bundle:
+## GitHub Submission
 
-```bash
-bash scripts/report/package_submission_bundle.sh
-```
+Only source code, configs, documentation, and lightweight metadata should be pushed to GitHub. Do not commit:
+
+- `data/`
+- `external/`
+- `results/`
+- `weights/`
+- `.venvs/`
+- `tools/`
+- final report notebook/PDF
+
+The final report and model weights should be submitted separately according to the course requirements.

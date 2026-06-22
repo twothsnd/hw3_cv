@@ -2,6 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PYTHON_2DGS="${ROOT_DIR}/.venvs/2dgs/bin/python"
+if [[ ! -x "${PYTHON_2DGS}" ]]; then
+  PYTHON_2DGS="python"
+fi
 
 OBJECT_A_INPUT="data/raw/object_A"
 OBJECT_C_IMAGE="data/raw/object_C/object_c.png"
@@ -16,8 +20,12 @@ IMAGE3D_GPU="3"
 
 ITERATIONS="30000"
 BACKGROUND_ITERATIONS="30000"
+OBJECT_A_FPS="5"
+OBJECT_A_MATCHER="sequential"
+OBJECT_A_CAMERA_MODEL="SIMPLE_PINHOLE"
 MAX_FRAMES="180"
 RESIZE_LONG_EDGE="1600"
+OBJECT_A_MESH_RES="256"
 TEXT3D_STEPS="10000"
 MAGIC123_COARSE_ITERS="5000"
 MAGIC123_FINE_ITERS="5000"
@@ -42,8 +50,12 @@ while [[ $# -gt 0 ]]; do
     --image3d-gpu) IMAGE3D_GPU="$2"; shift 2 ;;
     --iterations) ITERATIONS="$2"; shift 2 ;;
     --background-iterations) BACKGROUND_ITERATIONS="$2"; shift 2 ;;
+    --object-a-fps) OBJECT_A_FPS="$2"; shift 2 ;;
+    --object-a-matcher) OBJECT_A_MATCHER="$2"; shift 2 ;;
+    --object-a-camera-model) OBJECT_A_CAMERA_MODEL="$2"; shift 2 ;;
     --max-frames) MAX_FRAMES="$2"; shift 2 ;;
     --resize-long-edge) RESIZE_LONG_EDGE="$2"; shift 2 ;;
+    --object-a-mesh-res) OBJECT_A_MESH_RES="$2"; shift 2 ;;
     --text3d-steps) TEXT3D_STEPS="$2"; shift 2 ;;
     --magic123-coarse-iters) MAGIC123_COARSE_ITERS="$2"; shift 2 ;;
     --magic123-fine-iters) MAGIC123_FINE_ITERS="$2"; shift 2 ;;
@@ -113,17 +125,19 @@ FUSION_CONFIG="configs/fusion_scene.json"
 mkdir -p "${ROOT_DIR}/results/task1"
 
 if [[ "${RUN_OBJECT_A}" == "1" ]]; then
-  run_cmd python "${ROOT_DIR}/scripts/task1/extract_frames.py" \
+  run_cmd "${PYTHON_2DGS}" "${ROOT_DIR}/scripts/task1/extract_frames.py" \
     --input "$(abs_path "${OBJECT_A_INPUT}")" \
     --output "${ROOT_DIR}/${OBJECT_A_IMAGES}" \
+    --fps "${OBJECT_A_FPS}" \
     --max-frames "${MAX_FRAMES}" \
     --resize-long-edge "${RESIZE_LONG_EDGE}" \
     --overwrite
 
-  run_cmd python "${ROOT_DIR}/scripts/task1/run_colmap.py" \
+  run_cmd "${PYTHON_2DGS}" "${ROOT_DIR}/scripts/task1/run_colmap.py" \
     --images "${ROOT_DIR}/${OBJECT_A_IMAGES}" \
     --dataset "${ROOT_DIR}/${OBJECT_A_DATASET}" \
-    --matcher exhaustive \
+    --matcher "${OBJECT_A_MATCHER}" \
+    --camera-model "${OBJECT_A_CAMERA_MODEL}" \
     --backend auto \
     --overwrite
 
@@ -137,7 +151,8 @@ if [[ "${RUN_OBJECT_A}" == "1" ]]; then
     --dataset "${OBJECT_A_DATASET}" \
     --model "${OBJECT_A_MODEL}" \
     --gpu "${OBJECT_A_GPU}" \
-    --mesh-mode bounded
+    --mesh-mode bounded \
+    --mesh-res "${OBJECT_A_MESH_RES}"
 fi
 
 if [[ "${RUN_BACKGROUND}" == "1" ]]; then
@@ -175,7 +190,7 @@ if [[ "${RUN_IMAGE3D}" == "1" ]]; then
     --fine-iters "${MAGIC123_FINE_ITERS}"
 fi
 
-run_cmd python "${ROOT_DIR}/scripts/task1/collect_asset_stats.py" \
+run_cmd "${PYTHON_2DGS}" "${ROOT_DIR}/scripts/task1/collect_asset_stats.py" \
   --assets \
     "object_A=${OBJECT_A_MODEL}/train/ours_latest/fuse_post.ply" \
     "object_B=${OBJECT_B_MODEL}/export/model.obj" \
@@ -196,6 +211,10 @@ root = Path("${ROOT_DIR}")
 manifest = {
     "created_at_unix": time.time(),
     "object_a_input": "${OBJECT_A_INPUT}",
+    "object_a_camera_model": "${OBJECT_A_CAMERA_MODEL}",
+    "object_a_fps": "${OBJECT_A_FPS}",
+    "object_a_matcher": "${OBJECT_A_MATCHER}",
+    "object_a_mesh_res": "${OBJECT_A_MESH_RES}",
     "object_c_image": "${OBJECT_C_IMAGE}",
     "object_b_prompt": "${OBJECT_B_PROMPT}",
     "object_c_text": "${OBJECT_C_TEXT}",

@@ -14,6 +14,7 @@ from mathutils import Vector
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compose task-1 meshes into one Blender scene and render a video.")
     parser.add_argument("--config", required=True, type=Path)
+    parser.add_argument("--preview-only", action="store_true", help="Render only fusion_preview.png and skip blend/video output.")
     argv = sys.argv
     if "--" in argv:
         argv = argv[argv.index("--") + 1 :]
@@ -47,11 +48,46 @@ def make_material(name: str, color: list[float]):
     return mat
 
 
+def make_vertex_color_material(name: str, attribute_name: str):
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    principled = nodes.get("Principled BSDF")
+    if principled is None:
+        return mat
+    attr = nodes.new(type="ShaderNodeAttribute")
+    attr.attribute_name = attribute_name
+    mat.node_tree.links.new(attr.outputs["Color"], principled.inputs["Base Color"])
+    return mat
+
+
+def active_color_attribute_name(obj) -> str | None:
+    color_attributes = getattr(obj.data, "color_attributes", None)
+    if color_attributes and len(color_attributes) > 0:
+        active = getattr(color_attributes, "active_color", None) or color_attributes[0]
+        return active.name
+    vertex_colors = getattr(obj.data, "vertex_colors", None)
+    if vertex_colors and len(vertex_colors) > 0:
+        return vertex_colors.active.name if vertex_colors.active else vertex_colors[0].name
+    return None
+
+
 def apply_transform(obj, asset: dict) -> None:
-    obj.location = asset.get("location", [0, 0, 0])
     obj.scale = asset.get("scale", [1, 1, 1])
     rot = [math.radians(v) for v in asset.get("rotation_degrees", [0, 0, 0])]
     obj.rotation_euler = rot
+    if "center_at" in asset:
+        local_center = sum((Vector(corner) for corner in obj.bound_box), Vector()) / 8.0
+        scaled_center = Vector(
+            (
+                local_center.x * obj.scale.x,
+                local_center.y * obj.scale.y,
+                local_center.z * obj.scale.z,
+            )
+        )
+        obj.location = Vector(asset["center_at"]) - obj.rotation_euler.to_matrix() @ scaled_center
+    else:
+        obj.location = asset.get("location", [0, 0, 0])
 
 
 def setup_camera(config: dict) -> None:
@@ -68,6 +104,16 @@ def setup_camera(config: dict) -> None:
     frames = int(config.get("frames", 144))
     bpy.context.scene.frame_start = 1
     bpy.context.scene.frame_end = frames
+
+    if "location" in cam_cfg:
+        location = Vector(cam_cfg["location"])
+        target = Vector(cam_cfg.get("target", cam_cfg.get("center", [0.0, 0.0, 0.0])))
+        camera.location = location
+        direction = target - camera.location
+        camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+        camera.keyframe_insert(data_path="location", frame=1)
+        camera.keyframe_insert(data_path="rotation_euler", frame=1)
+        return
 
     for frame in range(1, frames + 1):
         theta = 2.0 * math.pi * (frame - 1) / frames
@@ -127,7 +173,14 @@ def main() -> None:
         for obj in objects:
             obj.name = asset["name"] + "_" + obj.name
             apply_transform(obj, asset)
-            if not obj.data.materials:
+            color_attribute = active_color_attribute_name(obj) if asset.get("use_vertex_colors", False) else None
+            if color_attribute:
+                obj.data.materials.clear()
+                obj.data.materials.append(make_vertex_color_material(obj.name + "_vertex_color_mat", color_attribute))
+            elif asset.get("override_material", False):
+                obj.data.materials.clear()
+                obj.data.materials.append(material)
+            elif not obj.data.materials:
                 obj.data.materials.append(material)
 
     setup_lighting()
@@ -149,6 +202,8 @@ def main() -> None:
     scene.render.image_settings.file_format = "PNG"
     scene.render.filepath = str(output_dir / "fusion_preview.png")
     bpy.ops.render.render(write_still=True)
+    if args.preview_only:
+        return
 
     scene.render.image_settings.file_format = "FFMPEG"
     scene.render.ffmpeg.format = "MPEG4"
@@ -156,7 +211,8 @@ def main() -> None:
     scene.render.ffmpeg.constant_rate_factor = "MEDIUM"
     scene.render.filepath = str(output_dir / "fusion_walkthrough.mp4")
     bpy.ops.wm.save_as_mainfile(filepath=str(output_dir / "fusion_scene.blend"))
-    bpy.ops.render.render(animation=True)
+    if config.get("render_animation", True):
+        bpy.ops.render.render(animation=True)
 
 
 if __name__ == "__main__":

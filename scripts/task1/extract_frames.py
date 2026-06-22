@@ -41,7 +41,7 @@ def ffmpeg_filter(args: argparse.Namespace) -> str:
 def extract_video(args: argparse.Namespace) -> int:
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
-        raise SystemExit("ffmpeg was not found in PATH. Install ffmpeg for video extraction.")
+        return extract_video_opencv(args)
     ensure_dir(args.output)
     pattern = str(args.output / "frame_%05d.jpg")
     cmd = [
@@ -67,6 +67,46 @@ def extract_video(args: argparse.Namespace) -> int:
             if path not in keep:
                 path.unlink()
     return len(list(args.output.glob("frame_*.jpg")))
+
+
+def extract_video_opencv(args: argparse.Namespace) -> int:
+    try:
+        import cv2
+        from PIL import Image
+    except Exception as exc:
+        raise SystemExit("ffmpeg was not found and OpenCV/Pillow fallback is unavailable.") from exc
+
+    ensure_dir(args.output)
+    cap = cv2.VideoCapture(str(args.input))
+    if not cap.isOpened():
+        raise SystemExit(f"Could not open video: {args.input}")
+    src_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    step = max(1, int(round(src_fps / max(args.fps, 1e-6))))
+    written = 0
+    frame_idx = 0
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        if frame_idx % step == 0:
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(rgb)
+            if args.resize_long_edge > 0:
+                long_edge = max(image.size)
+                if long_edge > args.resize_long_edge:
+                    scale = args.resize_long_edge / long_edge
+                    new_size = (round(image.size[0] * scale), round(image.size[1] * scale))
+                    image = image.resize(new_size, Image.Resampling.LANCZOS)
+            if not args.dry_run:
+                written += 1
+                image.save(args.output / f"frame_{written:05d}.jpg", quality=95)
+            if args.max_frames and written >= args.max_frames:
+                break
+        frame_idx += 1
+    cap.release()
+    print(f"[opencv] sampled every {step} frames from {total} input frames")
+    return written
 
 
 def sample_paths(paths: list[Path], max_items: int) -> list[Path]:
@@ -121,8 +161,16 @@ def main() -> None:
     args = parse_args()
     if args.overwrite and args.output.exists() and not args.dry_run:
         shutil.rmtree(args.output)
-    suffix = args.input.suffix.lower()
-    if args.input.is_file() and suffix in VIDEO_EXTS:
+    input_path = args.input
+    suffix = input_path.suffix.lower()
+    if input_path.is_dir():
+        images = sorted(p for p in input_path.iterdir() if p.suffix.lower() in IMAGE_EXTS)
+        videos = sorted(p for p in input_path.iterdir() if p.suffix.lower() in VIDEO_EXTS)
+        if not images and len(videos) == 1:
+            args.input = videos[0]
+            input_path = args.input
+            suffix = input_path.suffix.lower()
+    if input_path.is_file() and suffix in VIDEO_EXTS:
         count = extract_video(args)
         mode = "video"
     else:

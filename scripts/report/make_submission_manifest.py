@@ -9,36 +9,42 @@ from typing import Any
 
 
 DEFAULT_ARTIFACTS = [
+    "report/HW3_report.ipynb",
     "report/build/main.pdf",
     "report/figures/task1_fusion_preview.png",
     "report/figures/task1_asset_mesh_stats.pdf",
-    "report/figures/task2_training_loss.pdf",
-    "report/figures/task2_training_loss.csv",
-    "report/figures/task2_action_l1.pdf",
-    "results/task1/fusion_demo/fusion_preview.png",
-    "results/task1/fusion_demo/fusion_walkthrough.mp4",
-    "results/task1/fusion_demo/fusion_scene.blend",
+    "report/figures/task1_asset_mesh_stats.png",
+    "report/figures/task2_official_training_loss.pdf",
+    "report/figures/task2_official_training_loss.png",
+    "report/figures/task2_official_training_loss.csv",
+    "report/figures/task2_official_validation_metrics.pdf",
+    "report/figures/task2_official_validation_metrics.png",
+    "report/figures/task2_official_eval_metrics.pdf",
+    "report/figures/task2_official_eval_metrics.png",
+    "data/task1/frames_manifest.json",
+    "data/task1/object_A_colmap/colmap_manifest.json",
+    "data/task1/mipnerf360_full/garden/garden_manifest.json",
     "results/task1/asset_stats.json",
-    "results/task1/task1_2dgs_smoke_stats.json",
-    "results/task1/2dgs/object_A_synthetic_smoke/train/ours_200/fuse_post.ply",
-    "results/task1/background_garden_sparse_smoke_stats.json",
-    "results/task1/2dgs/background_garden_sparse_smoke/train/ours_300/fuse_unbounded_post.ply",
-    "results/task1/fusion_sparse_bg_smoke/fusion_preview.png",
-    "results/task1/fusion_sparse_bg_smoke/fusion_walkthrough.mp4",
-    "results/task2/logs/train_B_losslog.log",
-    "results/task2/logs/train_ABC_losslog.log",
-    "results/task2/logs/train_B_500.log",
-    "results/task2/logs/train_ABC_500.log",
-    "results/task2/eval_B_on_D.json",
-    "results/task2/eval_ABC_on_D.json",
-    "results/task2/eval_B500_on_D.json",
-    "results/task2/eval_ABC500_on_D.json",
+    "results/task1/real_run_manifest.json",
+    "results/task1/2dgs/object_A_rgba_cropped_alpha_clean/train/ours_latest/fuse_post_2dgs_tsdf_main_component.ply",
+    "results/task1/2dgs/background_garden_full/train/ours_latest/fuse_unbounded_post_crop_q02_98.ply",
+    "results/task1/previews/background_garden_full_2dgs_contact.png",
+    "results/task1/fusion_mesh/garden_scene_upright_topopen_q05.ply",
+    "results/task1/aigc/object_B_text3d/export/model.obj",
+    "results/task1/aigc/object_C_image3d/model.obj",
+    "results/task1/fusion_mesh/fusion_mesh_preview.png",
+    "results/task1/fusion_mesh/fusion_mesh_walkthrough.mp4",
+    "results/task1/fusion_mesh/fusion_mesh_scene.blend",
+    "results/task2/logs/online_train_B_train80_val20_10k.log",
+    "results/task2/logs/online_train_ABC_train40each_val10each_10k.log",
+    "results/task2/wandb_offline",
+    "results/task2/online_eval_B_on_D_100.json",
+    "results/task2/online_eval_ABC_on_D_100.json",
     "results/task2/act_eval_summary.csv",
-    "results/task2/download_abc_40_full_attempt.json",
-    "results/task2/act_env_B_inferred/checkpoints/000100/pretrained_model/model.safetensors",
-    "results/task2/act_env_ABC_small/checkpoints/000100/pretrained_model/model.safetensors",
-    "results/task2/act_env_B_inferred_500/checkpoints/000500/pretrained_model/model.safetensors",
-    "results/task2/act_env_ABC_small_500/checkpoints/000500/pretrained_model/model.safetensors",
+    "results/task2/online_act_B_train80_val20_10k/online_metrics.csv",
+    "results/task2/online_act_ABC_train40each_val10each_10k/online_metrics.csv",
+    "results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model/model.safetensors",
+    "results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model/model.safetensors",
     "results/submission_readiness.json",
 ]
 
@@ -51,8 +57,57 @@ REQUIRED_PRIVATE_INPUTS = [
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create a manifest for generated HW3 submission artifacts.")
     parser.add_argument("--output", default="results/submission_manifest.json", type=Path)
-    parser.add_argument("--artifacts", nargs="*", default=DEFAULT_ARTIFACTS)
+    parser.add_argument("--artifacts", nargs="*", default=None)
     return parser.parse_args()
+
+
+def dynamic_task1_artifacts(root: Path) -> list[str]:
+    manifest_path = root / "results/task1/real_run_manifest.json"
+    if not manifest_path.exists():
+        return []
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    artifacts: list[str] = []
+
+    object_a = manifest.get("object_a", {}).get("2dgs", {})
+    for key in ("checkpoint", "point_cloud", "official_tsdf_mesh", "final_mesh", "mesh_preview", "canonical_checkpoint", "official_tsdf_source", "official_tsdf_clean_mesh"):
+        value = object_a.get(key)
+        if isinstance(value, str) and value:
+            artifacts.append(value)
+
+    background = manifest.get("background", {})
+    for key in ("dataset_manifest",):
+        value = background.get(key)
+        if isinstance(value, str) and value:
+            artifacts.append(value)
+    background_2dgs = background.get("2dgs", {})
+    for key in ("checkpoint", "mesh", "point_cloud", "raw_mesh", "rgb_render_contact_sheet", "final_mesh_fusion_background", "mesh_preview"):
+        value = background_2dgs.get(key)
+        if isinstance(value, str) and value:
+            artifacts.append(value)
+
+    fusion = manifest.get("fusion", {})
+    for key in ("config", "preview", "video", "blend"):
+        value = fusion.get(key)
+        if isinstance(value, str) and value:
+            artifacts.append(value)
+
+    object_b = manifest.get("object_b", {}).get("threestudio", {})
+    for key in ("command", "config", "metrics", "preview", "test_video", "export"):
+        value = object_b.get(key)
+        if isinstance(value, str) and value:
+            artifacts.append(value)
+
+    object_c = manifest.get("object_c", {})
+    for key in ("prepared_rgba", "mesh", "material", "mesh_preview"):
+        value = object_c.get(key)
+        if isinstance(value, str) and value:
+            artifacts.append(value)
+
+    return artifacts
 
 
 def sha256_file(path: Path) -> str:
@@ -93,7 +148,8 @@ def describe_path(path: Path) -> dict[str, Any]:
 def main() -> None:
     args = parse_args()
     root = Path.cwd()
-    artifacts = {name: describe_path(root / name) for name in args.artifacts}
+    artifact_list = args.artifacts or [*DEFAULT_ARTIFACTS, *dynamic_task1_artifacts(root)]
+    artifacts = {name: describe_path(root / name) for name in dict.fromkeys(artifact_list)}
     private_inputs = {name: describe_path(root / path) for name, path in REQUIRED_PRIVATE_INPUTS}
     manifest = {
         "note": (
@@ -102,10 +158,12 @@ def main() -> None:
         ),
         "artifacts": artifacts,
         "required_private_inputs": private_inputs,
-        "known_completion_gap": (
-            "Task 1 real phone-captured object A multi-view/video and object C foreground image "
-            "are not present when their audited paths are missing or empty."
-        ),
+        "completion_notes": [
+            "Object B is a completed threestudio DreamFusion/SDS run using local Stable Diffusion v1.5 fp16 weights.",
+            "The Task 1 background source, dataset, 2DGS model, and exported mesh are recorded in results/task1/real_run_manifest.json.",
+            "The main report is report/HW3_report.ipynb; report/build/main.pdf is retained as a PDF backup.",
+            "Student names, IDs, GitHub URL, and permanent model-weight URL must be filled by the submitter in the notebook metadata cell.",
+        ],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")

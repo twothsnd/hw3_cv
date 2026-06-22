@@ -19,6 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-root", required=True, type=Path)
     parser.add_argument("--batch-size", default=16, type=int)
     parser.add_argument("--max-batches", default=0, type=int, help="0 evaluates all batches.")
+    parser.add_argument("--num-workers", default=4, type=int)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args()
@@ -93,7 +94,7 @@ def main() -> None:
         dataset_kwargs.pop("delta_timestamps", None)
         dataset = LeRobotDataset(**dataset_kwargs)
 
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=args.device.startswith("cuda"))
 
     total_l1 = 0.0
     total_loss = 0.0

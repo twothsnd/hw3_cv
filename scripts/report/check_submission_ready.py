@@ -51,6 +51,34 @@ def json_has_number(path: str, key: str) -> bool:
     return isinstance(value, (int, float))
 
 
+def read_json(path: str) -> dict[str, Any]:
+    if not exists_file(path):
+        return {}
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def nested_get(data: dict[str, Any], keys: list[str], default: str = "") -> str:
+    current: Any = data
+    for key in keys:
+        if not isinstance(current, dict) or key not in current:
+            return default
+        current = current[key]
+    return current if isinstance(current, str) else default
+
+
+def mesh_stats_at_least(asset_name: str, min_vertices: int, min_faces: int) -> bool:
+    if not exists_file("results/task1/asset_stats.json"):
+        return False
+    try:
+        stats = json.loads(Path("results/task1/asset_stats.json").read_text(encoding="utf-8"))[asset_name]
+    except Exception:
+        return False
+    return stats.get("vertices", 0) >= min_vertices and stats.get("faces", 0) >= min_faces
+
+
 def tar_contains(path: str, members: list[str]) -> bool:
     if not exists_file(path):
         return False
@@ -72,6 +100,7 @@ def report_metadata_ready(path: str) -> bool:
         "your-account",
         "your-cloud-link",
         "fill in concrete contributions",
+        "待填写",
     ]
     return not any(token in text for token in placeholders)
 
@@ -82,41 +111,48 @@ def check(name: str, ok: bool, evidence: str, severity: str = "error") -> dict[s
 
 def main() -> None:
     args = parse_args()
+    manifest = read_json("results/task1/real_run_manifest.json")
+    object_a_mesh = nested_get(manifest, ["object_a", "2dgs", "final_mesh"]) or "results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply"
+    background_mesh = nested_get(manifest, ["background", "2dgs", "mesh"]) or "results/task1/2dgs/background_garden_full/train/ours_latest/fuse_unbounded_post_crop_q02_98.ply"
+    object_b_mesh = nested_get(manifest, ["object_b", "mesh"]) or "results/task1/aigc/object_B_text3d/export/model.obj"
+    object_c_mesh = nested_get(manifest, ["object_c", "mesh"]) or "results/task1/aigc/object_C_image3d/model.obj"
+    object_b_prompt = nested_get(manifest, ["object_b", "prompt"])
+    object_b_config = nested_get(manifest, ["object_b", "threestudio", "config"])
     checks = [
         check("object A phone capture exists", object_a_input_ready("data/raw/object_A"), "data/raw/object_A"),
         check("object C foreground image exists", exists_file("data/raw/object_C/object_c.png"), "data/raw/object_C/object_c.png"),
         check("Task 1 real-run manifest exists", exists_file("results/task1/real_run_manifest.json"), "results/task1/real_run_manifest.json"),
         check("Object A COLMAP manifest exists", exists_file("data/task1/object_A_colmap/colmap_manifest.json"), "data/task1/object_A_colmap/colmap_manifest.json"),
-        check("Object A 2DGS mesh exists", exists_file("results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply"), "results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply"),
-        check("Background 2DGS mesh exists", exists_file("results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply"), "results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply"),
-        check("Object B mesh exists", exists_file("results/task1/aigc/object_B_text3d/export/model.obj"), "results/task1/aigc/object_B_text3d/export/model.obj"),
-        check("Object C mesh exists", exists_file("results/task1/aigc/object_C_image3d/model.obj"), "results/task1/aigc/object_C_image3d/model.obj"),
-        check("Final real fusion video exists", exists_file("results/task1/fusion/fusion_walkthrough.mp4"), "results/task1/fusion/fusion_walkthrough.mp4"),
-        check("Task 2 B checkpoint exists", exists_file("results/task2/act_env_B_inferred/checkpoints/000100/pretrained_model/model.safetensors"), "results/task2/act_env_B_inferred/checkpoints/000100/pretrained_model/model.safetensors"),
-        check("Task 2 ABC checkpoint exists", exists_file("results/task2/act_env_ABC_small/checkpoints/000100/pretrained_model/model.safetensors"), "results/task2/act_env_ABC_small/checkpoints/000100/pretrained_model/model.safetensors"),
-        check("Task 2 B 500-step checkpoint exists", exists_file("results/task2/act_env_B_inferred_500/checkpoints/000500/pretrained_model/model.safetensors"), "results/task2/act_env_B_inferred_500/checkpoints/000500/pretrained_model/model.safetensors"),
-        check("Task 2 ABC 500-step checkpoint exists", exists_file("results/task2/act_env_ABC_small_500/checkpoints/000500/pretrained_model/model.safetensors"), "results/task2/act_env_ABC_small_500/checkpoints/000500/pretrained_model/model.safetensors"),
-        check("B-on-D Action L1 JSON exists", json_has_number("results/task2/eval_B_on_D.json", "mean_action_l1"), "results/task2/eval_B_on_D.json"),
-        check("ABC-on-D Action L1 JSON exists", json_has_number("results/task2/eval_ABC_on_D.json", "mean_action_l1"), "results/task2/eval_ABC_on_D.json"),
-        check("B500-on-D Action L1 JSON exists", json_has_number("results/task2/eval_B500_on_D.json", "mean_action_l1"), "results/task2/eval_B500_on_D.json"),
-        check("ABC500-on-D Action L1 JSON exists", json_has_number("results/task2/eval_ABC500_on_D.json", "mean_action_l1"), "results/task2/eval_ABC500_on_D.json"),
-        check("Task 2 training loss figure exists", exists_file("report/figures/task2_training_loss.pdf"), "report/figures/task2_training_loss.pdf"),
-        check("Task 2 Action L1 figure exists", exists_file("report/figures/task2_action_l1.pdf"), "report/figures/task2_action_l1.pdf"),
-        check("Report PDF exists", exists_file("report/build/main.pdf"), "report/build/main.pdf"),
-        check("Report metadata is filled", report_metadata_ready("report/main.tex"), "report/main.tex"),
+        check("Object A 2DGS mesh exists", exists_file(object_a_mesh), object_a_mesh),
+        check("Object A mesh is non-proxy", mesh_stats_at_least("object_A", 1000, 1000), "results/task1/asset_stats.json:object_A"),
+        check("Background 2DGS mesh exists", exists_file(background_mesh), background_mesh),
+        check("Background mesh is non-proxy", mesh_stats_at_least("background", 100000, 100000), "results/task1/asset_stats.json:background"),
+        check("Object B mesh exists", exists_file(object_b_mesh), object_b_mesh),
+        check("Object B mesh is non-proxy", mesh_stats_at_least("object_B", 1000, 1000), "results/task1/asset_stats.json:object_B"),
+        check("Object B SDS run config exists", exists_file(object_b_config), object_b_config or "results/task1/real_run_manifest.json:object_b.threestudio.config"),
+        check("Object B prompt is toy car", "toy car" in object_b_prompt.lower(), object_b_prompt or "results/task1/real_run_manifest.json:object_b.prompt"),
+        check("Object C mesh exists", exists_file(object_c_mesh), object_c_mesh),
+        check("Object C mesh is non-proxy", mesh_stats_at_least("object_C", 1000, 1000), "results/task1/asset_stats.json:object_C"),
+        check("Final real mesh fusion video exists", exists_file("results/task1/fusion_mesh/fusion_mesh_walkthrough.mp4"), "results/task1/fusion_mesh/fusion_mesh_walkthrough.mp4"),
+        check("Task 2 online-val B-only 10k checkpoint exists", exists_file("results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model/model.safetensors"), "results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model/model.safetensors"),
+        check("Task 2 online-val ABC-mixed 10k checkpoint exists", exists_file("results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model/model.safetensors"), "results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model/model.safetensors"),
+        check("Online-val B-only 10k on D Action L1 JSON exists", json_has_number("results/task2/online_eval_B_on_D_100.json", "mean_action_l1"), "results/task2/online_eval_B_on_D_100.json"),
+        check("Online-val ABC-mixed 10k on D Action L1 JSON exists", json_has_number("results/task2/online_eval_ABC_on_D_100.json", "mean_action_l1"), "results/task2/online_eval_ABC_on_D_100.json"),
+        check("Task 2 online training loss figure exists", exists_file("report/figures/task2_official_training_loss.pdf"), "report/figures/task2_official_training_loss.pdf"),
+        check("Task 2 online validation figure exists", exists_file("report/figures/task2_official_validation_metrics.pdf"), "report/figures/task2_official_validation_metrics.pdf"),
+        check("Task 2 online eval metric figure exists", exists_file("report/figures/task2_official_eval_metrics.pdf"), "report/figures/task2_official_eval_metrics.pdf"),
+        check("Report notebook exists", exists_file("report/HW3_report.ipynb"), "report/HW3_report.ipynb"),
+        check("Report notebook metadata is filled", report_metadata_ready("report/HW3_report.ipynb"), "report/HW3_report.ipynb"),
+        check("Report PDF backup exists", exists_file("report/build/main.pdf"), "report/build/main.pdf"),
         check(
             "Weight package contains both ACT policies and metrics",
             tar_contains(
                 "weights/cv_hw3_task2_act_weights.tar.gz",
                 [
-                    "results/task2/act_env_B_inferred/checkpoints/000100/pretrained_model",
-                    "results/task2/act_env_ABC_small/checkpoints/000100/pretrained_model",
-                    "results/task2/act_env_B_inferred_500/checkpoints/000500/pretrained_model",
-                    "results/task2/act_env_ABC_small_500/checkpoints/000500/pretrained_model",
-                    "results/task2/eval_B_on_D.json",
-                    "results/task2/eval_ABC_on_D.json",
-                    "results/task2/eval_B500_on_D.json",
-                    "results/task2/eval_ABC500_on_D.json",
+                    "results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model",
+                    "results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model",
+                    "results/task2/online_eval_B_on_D_100.json",
+                    "results/task2/online_eval_ABC_on_D_100.json",
                 ],
             ),
             "weights/cv_hw3_task2_act_weights.tar.gz",

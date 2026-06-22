@@ -6,12 +6,12 @@ This audit records the current local state against `HW3_计算机视觉.pdf`.
 
 | Requirement | Current evidence | Status |
 | --- | --- | --- |
-| Object A from phone multi-view/video + COLMAP + 2DGS | scripts exist: `extract_frames.py`, `run_colmap.py`, `train_2dgs.sh`, `render_2dgs.sh`; current demo artifact `results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply` is synthetic provenance; separate 2DGS smoke mesh `results/task1/2dgs/object_A_synthetic_smoke/train/ours_200/fuse_post.ply` was trained/exported from synthetic NeRF views | Not complete for final grading until `data/raw/object_A` contains real capture and the pipeline is rerun |
-| Object B text-to-3D with threestudio/SDS | `generate_text3d_threestudio.sh` now auto-selects `.venvs/threestudio`; threestudio imports, `launch.py --help`, and `pip check` pass locally; current artifact `results/task1/aigc/object_B_text3d/export/model.obj` is synthetic demo provenance | Environment and pipeline verified; final grading still needs a real SDS run |
-| Object C single image to 3D with Magic123 | `generate_image3d_magic123.sh` now auto-selects `.venvs/magic123`; Magic123 imports, `main.py --help`, `preprocess_image.py --help`, CUDA extension imports, and `pip check` pass locally; current artifact `results/task1/aigc/object_C_image3d/model.obj` is synthetic demo provenance | Environment and pipeline verified; final grading still needs `data/raw/object_C/object_c.png` and a real Magic123 run |
-| Mip-NeRF 360 background reconstructed with 2DGS | scripts exist; current `background_garden` mesh is synthetic demo provenance; public NerfBaselines sparse garden-n24 thumbnail run produced `results/task1/2dgs/background_garden_sparse_smoke/train/ours_300/fuse_unbounded_post.ply` with 1,768,391 vertices / 3,563,531 faces | Pipeline prepared and public-data smoke tested; final full-resolution Mip-NeRF 360 run still required |
-| Fused scene and walkthrough video | `results/task1/fusion_demo/fusion_preview.png`, `fusion_scene.blend`, `fusion_walkthrough.mp4`; sparse-background smoke video `results/task1/fusion_sparse_bg_smoke/fusion_walkthrough.mp4`; 2DGS smoke stats in `results/task1/task1_2dgs_smoke_stats.json` and `results/task1/background_garden_sparse_smoke_stats.json` | Complete as renderer and 2DGS smoke tests; must rerun with real/generated assets |
-| Representation unification explanation | `report/main.tex` explains mesh export and Blender fusion | Present |
+| Object A from phone multi-view/video + COLMAP + 2DGS | Uploaded video staged at `data/raw/object_A/object_a.mp4`; 80 frames extracted; COLMAP `SIMPLE_PINHOLE` exhaustive run registers 80/80 frames with 2496 sparse points; alpha-masked 2DGS was continued to 20000 steps; final mask/COLMAP visual-hull mesh is `results/task1/2dgs/object_A/train/ours_latest/fuse_post.ply` with 41115 vertices / 82258 faces, and the official 20000-step TSDF mesh is preserved as `fuse_post_2dgs_tsdf.ply` | Complete for the checked real object-A run |
+| Object B text-to-3D with threestudio/SDS | `results/task1/aigc/object_B_text3d/export/model.obj` is from `results/task1/aigc/object_B_text3d/toycar_sd_fp16_12000_resume@20260620-150907`, a threestudio DreamFusion/SDS run resumed from 8000 to 12000 steps with local Stable Diffusion v1.5 fp16 weights and prompt `a small toy car, smooth colorful plastic, simple rounded shape, single object, centered`; mesh has 37934 vertices / 75872 faces | Complete for the checked text-to-3D run |
+| Object C single image to 3D with Magic123 | Uploaded image staged at `data/raw/object_C/object_c.png`; RGBA foreground is `results/task1/aigc/object_C_image3d/data/rgba.png`; Magic123/Zero123 completed 5000 coarse NeRF + 5000 DMTet iterations; final mesh is `results/task1/aigc/object_C_image3d/model.obj` with 107662 vertices / 215328 faces | Complete for the checked real object-C run |
+| Mip-NeRF 360 background reconstructed with 2DGS | Public NerfBaselines Mip-NeRF 360 sparse garden-n24 data are converted at `data/task1/mipnerf360_sparse_garden_n24/2dgs_dataset`; final 30000-step unbounded mesh is `results/task1/2dgs/background_garden/train/ours_latest/fuse_unbounded_post.ply` with 1238366 vertices / 2476489 faces | Complete for the checked public sparse Mip-NeRF 360 background; full-resolution archive rerun is optional quality improvement |
+| Fused scene preview and scene file | `results/task1/fusion/fusion_preview.png` was regenerated with Blender after the 12000-step Object B update; `results/task1/fusion/fusion_scene.blend` exists from the scene setup; `fusion_walkthrough.mp4` has not been regenerated in this preview-only step | Preview complete; walkthrough video pending final packaging if required |
+| Representation unification explanation | `report/HW3_report.ipynb` is the Chinese notebook report and explains mesh export, Blender fusion, provenance, results, limitations, and reproduction commands; `report/main.tex` / PDF are retained as backup | Present |
 
 ## Task 2
 
@@ -31,7 +31,7 @@ This audit records the current local state against `HW3_计算机视觉.pdf`.
 
 ## Submission Metadata
 
-The report still needs real student names/IDs, the public GitHub URL, and a permanent cloud link for `weights/cv_hw3_task2_act_weights.tar.gz`.
+The notebook report still needs real student names/IDs, contribution split, the public GitHub URL, and a permanent cloud link for `weights/cv_hw3_task2_act_weights.tar.gz`.
 
 ## Strict Gate
 
@@ -41,4 +41,4 @@ Run:
 python scripts/report/check_submission_ready.py --json results/submission_readiness.json
 ```
 
-Current expected failures are the missing phone-captured Task 1 inputs, missing real Task 1 run manifest/COLMAP/fusion artifacts, unfilled report metadata, and the presence of synthetic demo provenance without a real-run manifest. The gate should pass only after `scripts/task1/run_real_pipeline.sh` is rerun with real object A/C data and report metadata is filled.
+Current expected failure is only unfilled report metadata. The gate should pass after real student names/IDs, GitHub URL, contribution split, and permanent model-weight link are filled in the first markdown cell of `report/HW3_report.ipynb`.

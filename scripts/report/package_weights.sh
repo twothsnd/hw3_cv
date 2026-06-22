@@ -7,21 +7,16 @@ mkdir -p "${OUT_DIR}"
 
 tar -czf "${OUT_DIR}/cv_hw3_task2_act_weights.tar.gz" \
   -C "${ROOT_DIR}" \
-  results/task2/act_env_B_inferred/checkpoints/000100/pretrained_model \
-  results/task2/act_env_ABC_small/checkpoints/000100/pretrained_model \
-  results/task2/act_env_B_inferred_500/checkpoints/000500/pretrained_model \
-  results/task2/act_env_ABC_small_500/checkpoints/000500/pretrained_model \
-  results/task2/eval_B_on_D.json \
-  results/task2/eval_ABC_on_D.json \
-  results/task2/eval_B500_on_D.json \
-  results/task2/eval_ABC500_on_D.json \
+  results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model \
+  results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model \
+  results/task2/online_eval_B_on_D_100.json \
+  results/task2/online_eval_ABC_on_D_100.json \
   results/task2/act_eval_summary.csv \
-  results/task2/logs/train_B_losslog.log \
-  results/task2/logs/train_ABC_losslog.log \
-  results/task2/logs/train_B_500.log \
-  results/task2/logs/train_ABC_500.log \
-  results/task2/download_abc_40_full_attempt.json \
-  report/figures/task2_training_loss.csv \
+  results/task2/online_act_B_train80_val20_10k/online_metrics.csv \
+  results/task2/online_act_ABC_train40each_val10each_10k/online_metrics.csv \
+  results/task2/logs/online_train_B_train80_val20_10k.log \
+  results/task2/logs/online_train_ABC_train40each_val10each_10k.log \
+  report/figures/task2_official_training_loss.csv \
   results/submission_readiness.json \
   results/submission_manifest.json
 

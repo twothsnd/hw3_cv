@@ -26,7 +26,8 @@ python3 -m venv "${VENV}"
   mediapy \
   trimesh \
   imageio \
-  imageio-ffmpeg
+  imageio-ffmpeg \
+  pycolmap
 
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}" FORCE_CUDA=1 "${VENV}/bin/python" -m pip install --no-build-isolation "${REPO}/submodules/diff-surfel-rasterization"
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}" FORCE_CUDA=1 "${VENV}/bin/python" -m pip install --no-build-isolation "${REPO}/submodules/simple-knn"

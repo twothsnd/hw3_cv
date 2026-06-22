@@ -5,9 +5,12 @@ results/
 weights/
 tools/
 submission/
+backup/
 .venvs/
 .env
 report/metadata.json
+report/HW3_report.ipynb
+report/figures/
 *.pyc
 __pycache__/
 report/build/

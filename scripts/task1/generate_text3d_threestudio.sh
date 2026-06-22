@@ -6,6 +6,8 @@ REPO="${ROOT_DIR}/external/threestudio"
 PYTHON="${ROOT_DIR}/.venvs/threestudio/bin/python"
 if [[ ! -x "${PYTHON}" ]]; then
   PYTHON="python"
+else
+  export PATH="$(dirname "${PYTHON}"):${PATH}"
 fi
 PROMPT=""
 NAME="object_B_text3d"
@@ -71,13 +73,16 @@ if [[ "${EXPORT_MESH}" == "1" ]]; then
     system.exporter.fmt=obj
 
   EXPORT_DIR="${OUTPUT_ROOT}/${NAME}/export"
+  rm -rf "${EXPORT_DIR}"
   mkdir -p "${EXPORT_DIR}"
   FOUND_OBJ="$(find "${TRIAL_DIR}" -type f -name "*.obj" | sort | tail -n 1)"
-  if [[ -n "${FOUND_OBJ}" ]]; then
-    SRC_DIR="$(dirname "${FOUND_OBJ}")"
-    find "${SRC_DIR}" -maxdepth 1 -type f \( -name "*.obj" -o -name "*.mtl" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) -exec cp {} "${EXPORT_DIR}/" \;
-    cp "${FOUND_OBJ}" "${EXPORT_DIR}/model.obj"
+  if [[ -z "${FOUND_OBJ}" ]]; then
+    echo "No OBJ export found under ${TRIAL_DIR}" >&2
+    exit 1
   fi
+  SRC_DIR="$(dirname "${FOUND_OBJ}")"
+  find "${SRC_DIR}" -maxdepth 1 -type f \( -name "*.obj" -o -name "*.mtl" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) -exec cp {} "${EXPORT_DIR}/" \;
+  cp "${FOUND_OBJ}" "${EXPORT_DIR}/model.obj"
 fi
 
 echo "threestudio result: ${TRIAL_DIR}"

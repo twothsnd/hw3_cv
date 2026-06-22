@@ -1,0 +1,51 @@
+{
+  "resolution": [
+    1280,
+    720
+  ],
+  "fps": 24,
+  "frames": 1,
+  "output_dir": "results/task1/background_preview_garden_full_q02_oblique",
+  "camera": {
+    "target": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "location": [
+      0.0,
+      -5.5,
+      1.8
+    ],
+    "focal_length": 34
+  },
+  "assets": [
+    {
+      "name": "background_garden_q02",
+      "path": "results/task1/2dgs/background_garden_full/train/ours_latest/fuse_unbounded_post_crop_q02_98.ply",
+      "center_at": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_degrees": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        0.13,
+        0.13,
+        0.13
+      ],
+      "material_color": [
+        0.8,
+        0.8,
+        0.8,
+        1.0
+      ],
+      "override_material": false,
+      "use_vertex_colors": true
+    }
+  ]
+}

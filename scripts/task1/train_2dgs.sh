@@ -3,6 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPO="${ROOT_DIR}/external/2d-gaussian-splatting"
+PYTHON="${ROOT_DIR}/.venvs/2dgs/bin/python"
+if [[ ! -x "${PYTHON}" ]]; then
+  PYTHON="python"
+fi
 DATASET=""
 OUTPUT=""
 GPU="0"
@@ -40,7 +44,7 @@ fi
 
 mkdir -p "$(dirname "${ROOT_DIR}/${OUTPUT}")"
 
-CMD=(python train.py -s "${ROOT_DIR}/${DATASET}" -m "${ROOT_DIR}/${OUTPUT}" --iterations "${ITERATIONS}" --lambda_normal "${LAMBDA_NORMAL}" --lambda_dist "${LAMBDA_DISTORTION}")
+CMD=("${PYTHON}" train.py -s "${ROOT_DIR}/${DATASET}" -m "${ROOT_DIR}/${OUTPUT}" --iterations "${ITERATIONS}" --lambda_normal "${LAMBDA_NORMAL}" --lambda_dist "${LAMBDA_DISTORTION}")
 if [[ -n "${EVAL_FLAG}" ]]; then
   CMD+=("${EVAL_FLAG}")
 fi

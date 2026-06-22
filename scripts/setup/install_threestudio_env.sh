@@ -62,6 +62,22 @@ if [[ "${INSTALL_THREESTUDIO_XFORMERS}" != "1" ]]; then
 fi
 
 "${VENV}/bin/python" -m pip install -r "${TMP_REQUIREMENTS}"
+
+NERFACC_UTILS="$("${VENV}/bin/python" - <<'PY'
+from pathlib import Path
+import nerfacc
+
+print(Path(nerfacc.__file__).resolve().parent / "cuda/csrc/include/utils_math.cuh")
+PY
+)"
+if [[ -f "${NERFACC_UTILS}" ]]; then
+  sed -i \
+    -e 's/float lerp(float a, float b, float t)/float nerfacc_lerp(float a, float b, float t)/' \
+    -e 's/float2 lerp(float2 a, float2 b, float t)/float2 nerfacc_lerp(float2 a, float2 b, float t)/' \
+    -e 's/float3 lerp(float3 a, float3 b, float t)/float3 nerfacc_lerp(float3 a, float3 b, float t)/' \
+    -e 's/float4 lerp(float4 a, float4 b, float t)/float4 nerfacc_lerp(float4 a, float4 b, float t)/' \
+    "${NERFACC_UTILS}"
+fi
 "${VENV}/bin/python" -m pip install -e "${REPO}"
 
 echo "Activate with: source ${VENV}/bin/activate"

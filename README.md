@@ -355,7 +355,43 @@ The archive contains:
 When reproducing from a downloaded archive, extract it at the repository root:
 
 ```bash
+mkdir -p weights
+# Put the downloaded archive at:
+# weights/cv_hw3_task2_act_weights.tar.gz
 tar -xzf weights/cv_hw3_task2_act_weights.tar.gz -C .
+```
+
+After extraction, the following paths should exist:
+
+```text
+results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model/model.safetensors
+results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model/model.safetensors
+results/task2/online_eval_B_on_D_100.json
+results/task2/online_eval_ABC_on_D_100.json
+results/task2/online_act_B_train80_val20_10k/online_metrics.csv
+results/task2/online_act_ABC_train40each_val10each_10k/online_metrics.csv
+```
+
+To verify the downloaded checkpoints, prepare the CALVIN D split as described above, then run:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 .venvs/lerobot/bin/python scripts/task2/eval_action_l1.py \
+  --policy-path results/task2/online_act_B_train80_val20_10k/checkpoints/010000/pretrained_model \
+  --dataset-repo-id cv_hw3/calvin_official_D_eval_100 \
+  --dataset-root data/task2/lerobot_v30_official/calvin_D_eval_100 \
+  --batch-size 16 \
+  --num-workers 8 \
+  --device cuda \
+  --output results/task2/online_eval_B_on_D_100_recheck.json
+
+CUDA_VISIBLE_DEVICES=0 .venvs/lerobot/bin/python scripts/task2/eval_action_l1.py \
+  --policy-path results/task2/online_act_ABC_train40each_val10each_10k/checkpoints/010000/pretrained_model \
+  --dataset-repo-id cv_hw3/calvin_official_D_eval_100 \
+  --dataset-root data/task2/lerobot_v30_official/calvin_D_eval_100 \
+  --batch-size 16 \
+  --num-workers 8 \
+  --device cuda \
+  --output results/task2/online_eval_ABC_on_D_100_recheck.json
 ```
 
 ## GitHub Submission
